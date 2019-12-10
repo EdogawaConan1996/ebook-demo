@@ -2,7 +2,7 @@
   <div class="EBook">
     <top-bar :show="showTitleAndMenu"/>
     <div id="book-wrapper"></div>
-    <tabs :show="showTitleAndMenu" @set-font-size="handleSetFontSize"/>
+    <tabs :show="showTitleAndMenu" @set-font-size="handleSetFontSize" @set-theme="handleSetTheme"/>
   </div>
 </template>
 
@@ -42,7 +42,7 @@ export default {
         method: 'default'
       })
       this.themes = this.rendition.themes
-      this.themes.fontSize('18px')
+      this.handleSetFontSize(18)
       // 通过Rendition.display生成电子书
       this.rendition.display()
       // 绑定touchstart和touchend事件
@@ -81,6 +81,12 @@ export default {
     handleSetFontSize(fontSize) {
       if (this.themes) {
         this.themes.fontSize(fontSize + 'px')
+      }
+    },
+    handleSetTheme(theme) {
+      if (this.themes) {
+        this.themes.register(theme.name,theme.style)
+        this.themes.select(theme.name)
       }
     }
 

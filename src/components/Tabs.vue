@@ -16,33 +16,31 @@
         </div>
       </div>
     </transition>
-    <transition name="slide-up">
-      <div :class="{'setting-wrapper': true, 'top-shadow': isSelectedItem}" v-show="showFontSizeSet">
-        <div class="setting-font-size">
-          <div class="preview" :style="{fontSize: `${fontSizeList[0].fontSize}px`}">A</div>
-          <div class="select-wrapper">
-            <template v-for="item in fontSizeList">
-              <div class="line"></div>
-              <div :key="item.fontSize" class="point-wrapper" @click="selectFontSize(item.fontSize)">
-                <div class="point" v-show="item.fontSize === fontSize">
-                  <div class="small-point"></div>
+    <transition name="slide-up" key="fontSize">
+        <div :class="{'setting-wrapper': true, 'top-shadow': isSelectedItem}" v-show="isSelectedItem">
+          <div class="setting-font-size" v-show="showFontSizeSet && fontSizeList.length > 0">
+            <div class="preview" :style="{fontSize: `${fontSizeList[0].fontSize}px`}">A</div>
+            <div class="select-wrapper">
+              <template v-for="item in fontSizeList">
+                <div class="line"></div>
+                <div :key="item.fontSize" class="point-wrapper" @click="selectFontSize(item)">
+                  <div class="point" v-show="item.fontSize === fontSize.fontSize">
+                    <div class="small-point"></div>
+                  </div>
                 </div>
-              </div>
-              <div class="line"></div>
-            </template>
+                <div class="line"></div>
+              </template>
+            </div>
+            <div class="preview" :style="{fontSize: `${fontSizeList[fontSizeList.length - 1].fontSize}px`}">A</div>
           </div>
-          <div class="preview" :style="{fontSize: `${fontSizeList[fontSizeList.length - 1].fontSize}px`}">A</div>
-        </div>
-      </div>
-      <div :class="{'setting-wrapper': true, 'top-shadow': isSelectedItem}" v-show="showThemeSet">
-        <div class="set-theme">
-          <div class="theme-item">
-            <div class="theme-background" :style="{backgroundColor: '#000'}"></div>
-            <div class="theme-name">Black</div>
+          <div class="set-theme" v-show="showThemeSet && themeList.length > 0">
+            <div v-for="item in themeList" class="theme-item" @click="selectTheme(item)" :key="item.name">
+              <div :class="{'theme-background': true, 'selected': theme.name === item.name}" :style="{background: item.style.body.background}"></div>
+              <div :class="{'theme-name': true, 'selected': theme.name === item.name}">{{item.name}}</div>
+            </div>
           </div>
         </div>
-      </div>
-    </transition>
+      </transition>
   </div>
 </template>
 
@@ -69,7 +67,39 @@
           {fontSize: 22},
           {fontSize: 24},
         ],
-        fontSize: 18
+        fontSize: {fontSize: 18},
+        themeList: [
+          {
+            name: 'default',
+            style: {
+              body: {'color': '#000', 'background': '#fff'}
+            }
+          },
+          {
+            name: 'eye',
+            style: {
+              body: {'color': '#000', 'background': '#ceeaba'}
+            }
+          },
+          {
+            name: 'night',
+            style: {
+              body: {'color': '#fff', 'background': '#000'}
+            }
+          },
+          {
+            name: 'gold',
+            style: {
+              body: {'color': '#000', 'background': 'rgb(241,236,226)'}
+            }
+          }
+        ],
+        theme: {
+          name: 'default',
+          style: {
+            body: {'color': '#000', 'background': '#fff'}
+          }
+        }
       }
     },
     computed: {
@@ -84,9 +114,13 @@
           case 'theme': this.showThemeSet = !this.showThemeSet; break;
         }
       },
-      selectFontSize (fontSize) {
-        this.fontSize = fontSize
-        this.$emit('set-font-size', this.fontSize)
+      selectFontSize (item) {
+        this.fontSize = item
+        this.$emit('set-font-size', this.fontSize.fontSize)
+      },
+      selectTheme(theme) {
+        this.theme = theme
+        this.$emit('set-theme', this.theme)
       }
     },
     watch: {
@@ -97,6 +131,10 @@
           this.showThemeSet = false
         }
       }
+    },
+    mounted() {
+      this.selectFontSize(this.fontSize)
+      this.selectTheme(this.theme)
     }
   }
 </script>
@@ -136,7 +174,7 @@
     }
     .setting-wrapper {
       position: absolute;
-      z-index: 101;
+      z-index: 99;
       bottom: px2rem(48);
       left: 0;
       right: 0;
@@ -183,7 +221,6 @@
                 height: px2rem(5);
                 background-color: #000;
                 border-radius: 50%;
-
               }
             }
           }
@@ -193,15 +230,28 @@
         display: flex;
         flex-direction: row;
         height: 100%;
+        @include center();
         .theme-item {
           flex: 1;
-          @include center();
-          flex-direction: column;
+          padding: 0 px2rem(10);
           .theme-background {
-
+            height: px2rem(20);
+            width: 100%;
+            margin-bottom: px2rem(7);
+            border: 1px solid #ccc;
+            background-color: #000;
+            &.selected {
+              border: px2rem(2) solid #ff0000;
+            }
           }
           .theme-name {
-
+            font-size: px2rem(20);
+            color: #333;
+            text-align: center;
+            &.selected {
+              color: #000;
+              font-weight: 400;
+            }
           }
         }
       }
