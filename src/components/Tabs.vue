@@ -2,10 +2,10 @@
   <div class="menu-bar">
     <transition name="slide-up">
       <div :class="{'tabs': true, 'top-shadow': !isSelectedItem}" v-show="showTab" ref="tabs">
-        <div class="icon-wrapper">
+        <div class="icon-wrapper" @click="handleSelectTab('navigation')">
           <span class="ebook-icon-menu ebook-icon"></span>
         </div>
-        <div class="icon-wrapper">
+        <div class="icon-wrapper" @click="handleSelectTab('location')">
           <span class="ebook-icon-progress ebook-icon"></span>
         </div>
         <div class="icon-wrapper" @click="handleSelectTab('theme')">
@@ -16,9 +16,9 @@
         </div>
       </div>
     </transition>
-    <transition name="slide-up" key="fontSize">
+    <transition name="slide-up">
         <div :class="{'setting-wrapper': true, 'top-shadow': isSelectedItem}" v-show="isSelectedItem">
-          <div class="setting-font-size" v-show="showFontSizeSet && fontSizeList.length > 0">
+          <div class="setting-font-size" v-show="tabFlag === 'fontSize' && fontSizeList.length > 0">
             <div class="preview" :style="{fontSize: `${fontSizeList[0].fontSize}px`}">A</div>
             <div class="select-wrapper">
               <template v-for="item in fontSizeList">
@@ -33,31 +33,71 @@
             </div>
             <div class="preview" :style="{fontSize: `${fontSizeList[fontSizeList.length - 1].fontSize}px`}">A</div>
           </div>
-          <div class="set-theme" v-show="showThemeSet && themeList.length > 0">
+          <div class="set-theme" v-show="tabFlag === 'theme' && themeList.length > 0">
             <div v-for="item in themeList" class="theme-item" @click="selectTheme(item)" :key="item.name">
               <div :class="{'theme-background': true, 'selected': theme.name === item.name}" :style="{background: item.style.body.background}"></div>
               <div :class="{'theme-name': true, 'selected': theme.name === item.name}">{{item.name}}</div>
             </div>
           </div>
+          <div class="set-location" v-show="tabFlag === 'location'">
+            <div class="process-wrapper">
+              <input class="process"
+                     ref="process"
+                     type="range"
+                     min="0"
+                     max="100"
+                     step="1"
+                     :value="location"
+                     :disabled="loadingLocations"
+                     @change="onProcessChange"
+                     @input="onProcessInput"/>
+              <div class="status">{{loadingLocations ? '加载中' : `${location}%`}}</div>
+            </div>
+          </div>
         </div>
       </transition>
+    <content-view
+      :loading="loadingNavigations"
+      v-show="tabFlag === 'navigation'"
+      :navigation="navigation"
+      @select-item="selectHref"/>
+    <transition name="fade">
+      <div class="content-mask" v-show="tabFlag === 'navigation'" @click="hideContent">
+      </div>
+    </transition>
   </div>
 </template>
 
 <script>
+  import ContentView from "@/components/ContentView";
   export default {
     name: "tabs",
+    components: {ContentView},
     props: {
       show: {
         type: Boolean,
         required: true
+      },
+      loadingLocations: {
+        type: Boolean,
+        required: true
+      },
+      loadingNavigations: {
+        type: Boolean,
+        required: true
+      },
+      navigation: {
+        type: Object,
+        default() {
+          return {}
+        }
       }
     },
     data() {
       return {
         showTab: false,
-        showFontSizeSet: false,
-        showThemeSet: false,
+        tabList: ['fontSize', 'theme', 'location', 'navigation'],
+        tabFlag: '',
         fontSizeList: [
           {fontSize: 12},
           {fontSize: 14},
@@ -99,20 +139,18 @@
           style: {
             body: {'color': '#000', 'background': '#fff'}
           }
-        }
+        },
+        location: 0
       }
     },
     computed: {
       isSelectedItem() {
-        return this.showFontSizeSet || this.showThemeSet
+        return this.tabFlag && this.tabFlag !== 'navigation'
       }
     },
     methods: {
       handleSelectTab(type) {
-        switch (type) {
-          case 'fontSize': this.showFontSizeSet = !this.showFontSizeSet; break;
-          case 'theme': this.showThemeSet = !this.showThemeSet; break;
-        }
+        this.tabFlag = type
       },
       selectFontSize (item) {
         this.fontSize = item
@@ -121,14 +159,28 @@
       selectTheme(theme) {
         this.theme = theme
         this.$emit('set-theme', this.theme)
+      },
+      onProcessChange(event) {
+        const value = event.target.value
+        this.$emit('set-location', value)
+      },
+      onProcessInput(event) {
+        this.location = event.target.value
+        this.$refs.process.style.backgroundSize = `${location}% 100%`
+      },
+      hideContent() {
+        this.tabFlag = ''
+      },
+      selectHref (href) {
+        this.tabFlag = ''
+        this.$emit('jump-to', href)
       }
     },
     watch: {
       show (val) {
         this.showTab = val
         if (!val) {
-          this.showFontSizeSet = false
-          this.showThemeSet = false
+          this.tabFlag = ''
         }
       }
     },
@@ -161,15 +213,6 @@
         .ebook-icon-bright {
           font-size: px2rem(24);
         }
-      }
-      &.slide-up-enter-active, &.slide-up-leave-active{
-        transition: all 300ms linear;
-      }
-      &.slide-up-enter, &.slide-up-leave-to {
-        transform: translate3d(0,100%,0);
-      }
-      &.slide-up-enter-to, &.slide-up-leave {
-        transform: translate3d(0,0,0);
       }
     }
     .setting-wrapper {
@@ -227,10 +270,9 @@
         }
       }
       .set-theme {
-        display: flex;
-        flex-direction: row;
         height: 100%;
         @include center();
+        flex-direction: row;
         .theme-item {
           flex: 1;
           padding: 0 px2rem(10);
@@ -241,12 +283,12 @@
             border: 1px solid #ccc;
             background-color: #000;
             &.selected {
-              border: px2rem(2) solid #ff0000;
+              border: px2rem(1) solid #ff0000;
             }
           }
           .theme-name {
             font-size: px2rem(20);
-            color: #333;
+            color: #ccc;
             text-align: center;
             &.selected {
               color: #000;
@@ -255,18 +297,61 @@
           }
         }
       }
-      &.slide-up-enter-active, &.slide-up-leave-active{
-        transition: all 300ms linear;
-      }
-      &.slide-up-enter, &.slide-up-leave-to {
-        transform: translate3d(0,100%,0);
-      }
-      &.slide-up-enter-to, &.slide-up-leave {
-        transform: translate3d(0,0,0);
+      .set-location {
+        height: 100%;
+        @include center();
+        flex-direction: row;
+        .process-wrapper {
+          height: 100%;
+          width: 100%;
+          @include center();
+          flex-direction: column;
+          padding: 0 px2rem(30);
+          box-sizing: border-box;
+          .process {
+            width: 100%;
+            -webkit-appearance: none;
+            height: px2rem(2);
+            background: -webkit-linear-gradient(#333,#999) no-repeat, #ddd;
+            background-size: 0 100%;
+            margin-bottom: px2rem(15);
+            &:focus {
+              outline: none;
+            }
+            &::-webkit-slider-thumb {
+              -webkit-appearance: none;
+              height: px2rem(20);
+              width: px2rem(20);
+              border-radius: 50%;
+              background: #fff;
+              box-shadow: 0 4px 4px 0 rgba(0,0,0,0.15);
+              bordeer: px2rem(1) solid #ddd;
+            }
+          }
+          .status {
+            text-align: center;
+            font-size: px2rem(12);
+          }
+        }
       }
     }
     .top-shadow {
       box-shadow: 0 px2rem(-8) px2rem(8) rgba(0,0,0,0.15);
     }
+    .content-mask {
+      position: fixed;
+      top: 0;
+      left: 0;
+      left: 0;
+      z-index: 110;
+      display: flex;
+      height: 100%;
+      width: 100%;
+      background-color: rgba(51,51,51,.8);
+    }
+  }
+  input[type="range"] {
+    height: 10px;
+    width: 100%;
   }
 </style>

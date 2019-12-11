@@ -2,7 +2,15 @@
   <div class="EBook">
     <top-bar :show="showTitleAndMenu"/>
     <div id="book-wrapper"></div>
-    <tabs :show="showTitleAndMenu" @set-font-size="handleSetFontSize" @set-theme="handleSetTheme"/>
+    <tabs
+      :show="showTitleAndMenu"
+      :loading-locations="loadingLocations"
+      :loading-navigations="loadingNavigations"
+      :navigation="navigation"
+      @set-font-size="handleSetFontSize"
+      @set-theme="handleSetTheme"
+      @set-location="handleChangeProcess"
+      @jump-to="handleJumpTo"/>
   </div>
 </template>
 
@@ -24,10 +32,14 @@ export default {
       book: null,
       rendition: null,
       themes: null,
+      navigation: null,
       touchStartX: 0,
       touchStartY: 0,
       touchStartTimeStamp: 0,
-      showTitleAndMenu: false
+      showTitleAndMenu: false,
+      locations: null,
+      loadingLocations: true,
+      loadingNavigations: true
     }
   },
   methods: {
@@ -41,11 +53,9 @@ export default {
         height: window.innerHeight,
         method: 'default'
       })
-      this.themes = this.rendition.themes
-      this.handleSetFontSize(18)
       // 通过Rendition.display生成电子书
       this.rendition.display()
-      // 绑定touchstart和touchend事件
+      // 绑定touchstart\touchend\click事件
       this.rendition.on('touchstart', (event) => {
         this.touchStartX = event.changedTouches[0].clientX
         this.touchStartTimeStamp = event.timeStamp
@@ -67,6 +77,18 @@ export default {
       this.rendition.on('click', () => {
         this.showTitleAndMenu = !this.showTitleAndMenu
       })
+      // 主题设置器
+      this.themes = this.rendition.themes
+      // epubjs钩子函数, book加载完毕后获取目录navigation随后生成进度locations
+      this.book.ready.then(() => {
+        this.navigation = this.book.navigation
+        console.log(this.navigation)
+        this.loadingNavigations = false
+        return this.book.locations.generate()
+      }).then(() => {
+        this.locations = this.book.locations
+        this.loadingLocations = false
+      })
     },
     prevPage() {
       if (this.rendition) {
@@ -87,6 +109,17 @@ export default {
       if (this.themes) {
         this.themes.register(theme.name,theme.style)
         this.themes.select(theme.name)
+      }
+    },
+    handleChangeProcess(process) {
+      const percent = process / 100
+      const location = percent > 0 ? this.locations.cfiFromPercentage(percent) : 0
+      this.rendition.display(location)
+    },
+    handleJumpTo(href) {
+      if(this.rendition) {
+        this.rendition.display(href)
+        this.showTitleAndMenu = false
       }
     }
 
