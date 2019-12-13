@@ -48,7 +48,8 @@
     box-shadow: 0 px2rem(8) px2rem(8) rgba(0,0,0,0.15);
     display: flex;
     .left {
-      flex: 0 0 px2rem(60)
+      flex: 0 0 px2rem(60);
+      margin-left: px2rem(12);
     }
     .right {
       flex: 1;

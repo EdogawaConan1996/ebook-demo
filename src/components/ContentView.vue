@@ -4,7 +4,7 @@
         <div class="content">
           <div class="content-wrapper" v-if="navigation && navigation.toc.length > 0">
             <div class="content-item" v-for="(item,index) in navigation.toc" :key="item.id" @click="selectItem(item)">
-              <span class="text">{{index}} {{item.label}}</span>
+              <span class="text">{{item.label}}</span>
             </div>
           </div>
           <div class="empty" v-else>加载中......</div>
